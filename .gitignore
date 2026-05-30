@@ -4,3 +4,6 @@ dist/
 # Temporales
 *.tmp
 _spike*.sz
+
+apps/
+publish.ps1

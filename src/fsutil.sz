@@ -1,0 +1,29 @@
+// fsutil.sz — copia de archivos y árboles, sin manipular binarios a mano.
+// (read_asBinary/write_asBinary es binario-safe y rápido: ~0.6s para sz.exe de 5MB.)
+
+import "strutil"
+
+// Copia un archivo cualquiera (binario-safe): vale para sz.exe y para .sz.
+export fn void copyFile(string src, string dst) {
+    let bytes = File.read_asBinary(src);
+    File.write_asBinary(dst, bytes);
+}
+
+// Copia recursiva de un directorio. Por EFECTOS (no acumula arrays, porque los
+// arrays no son pass-by-reference en serez-code).
+export fn void copyTree(string src, string dst) {
+    File.mkdir(dst);
+    let entries = File.listDir(src);
+    let n = entries.length();
+    for (let i = 0; i < n; i++) {
+        let name = entries[i];
+        let s = joinPath(src, name);
+        let d = joinPath(dst, name);
+        let st = File.stat(s);
+        if (st.isDir) {
+            copyTree(s, d);
+        } else {
+            copyFile(s, d);
+        }
+    }
+}

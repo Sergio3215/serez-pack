@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Plantilla de MSI para serez-pack (WiX v4+). Placeholders @...@ los sustituye wxs.sz. -->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="@NAME@" Manufacturer="@MANUFACTURER@" Version="@VERSION@" Scope="perMachine">
+    <MediaTemplate EmbedCab="yes" />
+
+    <StandardDirectory Id="ProgramFiles6432Folder">
+      <Directory Id="INSTALLFOLDER" Name="@NAME@" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="AppMenuDir" Name="@NAME@" />
+    </StandardDirectory>
+
+    <!-- Recoge TODO el staging (sz.exe + app.sz + serez.json + serez-ui/**) -->
+    <Files Include="@STAGEDIR@\**" Directory="INSTALLFOLDER" />
+
+    <!-- Acceso directo del menú inicio que lanza: sz.exe app.sz -->
+    <Component Directory="AppMenuDir">
+      <Shortcut Id="AppShortcut" Name="@NAME@" Target="[INSTALLFOLDER]sz.exe" Arguments="app.sz" WorkingDirectory="INSTALLFOLDER" />
+      <RemoveFolder Id="AppMenuDir" On="uninstall" />
+      <RegistryValue Root="HKCU" Key="Software\SerezDev\@NAME@" Name="installed" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+  </Package>
+</Wix>

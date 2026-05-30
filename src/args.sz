@@ -1,0 +1,43 @@
+// args.sz — lectura de opciones de la CLI desde Env.args().
+//
+// IMPORTANTE: sz.exe rechaza cualquier flag '--xxx' desconocido y aborta antes
+// de ejecutar el script (main.rs). Por eso las opciones se pasan como tokens
+// "clave=valor" SIN guiones: sz.exe los ignora, pero Env.args() sí los ve.
+//   sz.exe pack.sz entry=app.sz name=MiApp out=dist format=folder
+//
+// (No se usa dict: un dict tipado LANZA error en clave ausente, así que `??`
+//  no sirve para defaults.)
+
+// Valor de "clave=valor", o dflt si la clave no aparece.
+export fn string getOpt(any args, string key, string dflt) {
+    let prefix = key + "=";
+    let plen = prefix.length();
+    let n = args.length();
+    let i = 0;
+    while (i < n) {
+        let tok = args[i];
+        if (tok.length() >= plen) {
+            if (tok.substring(0, plen) == prefix) {
+                return tok.substring(plen, tok.length());
+            }
+        }
+        i = i + 1;
+    }
+    return dflt;
+}
+
+// true si la clave aparece (con cualquier valor).
+export fn bool hasOpt(any args, string key) {
+    let prefix = key + "=";
+    let plen = prefix.length();
+    let n = args.length();
+    let i = 0;
+    while (i < n) {
+        let tok = args[i];
+        if (tok.length() >= plen) {
+            if (tok.substring(0, plen) == prefix) { return true; }
+        }
+        i = i + 1;
+    }
+    return false;
+}

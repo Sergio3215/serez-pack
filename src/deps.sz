@@ -1,0 +1,84 @@
+// deps.sz — WiX como dependencia gestionada.
+//
+// Modelo (decidido con Sergio): se declara en el serez.json de serez-pack
+//   "dependencies": { "wix": "5" }
+// Si está declarada y NO instalada → se auto-instala con `dotnet tool install --global wix`.
+// Si NO está declarada → no se instala nada (y msi/exe avisan que falta declararla).
+
+import "strutil"
+import "detect"
+
+// ¿El serez.json declara la dependencia `dep`? (chequeo textual simple, suficiente
+// porque el nombre sólo aparece dentro de "dependencies").
+export fn bool declaresDep(string serezJsonPath, string dep) {
+    if (!File.exists(serezJsonPath)) { return false; }
+    let content = File.read(serezJsonPath);
+    let q = "\"";
+    let needle = q + dep + q;
+    return content.includes(needle);
+}
+
+// Versión declarada para `dep` ("wix" -> "5"), o "" si no aparece.
+export fn string depVersion(string serezJsonPath, string dep) {
+    if (!File.exists(serezJsonPath)) { return ""; }
+    let content = File.read(serezJsonPath);
+    let q = "\"";
+    let key = q + dep + q;
+    let ki = strIndexOf(content, key);
+    if (ki < 0) { return ""; }
+    let rest = content.substring(ki + key.length(), content.length());
+    let oi = strIndexOf(rest, q);
+    if (oi < 0) { return ""; }
+    let after = rest.substring(oi + 1, rest.length());
+    let ci = strIndexOf(after, q);
+    if (ci < 0) { return ""; }
+    return after.substring(0, ci);
+}
+
+// Convierte la versión declarada al argumento de dotnet: "5" -> "5.*" (floating),
+// "5.0.2" se pasa tal cual. Por defecto WiX 5 (sin peaje OSMF de la v6+).
+export fn string wixVersionArg(string declared) {
+    if (declared == "") { return "5.*"; }
+    if (declared.includes(".")) { return declared; }
+    return declared + ".*";
+}
+
+// Garantiza WiX: devuelve la ruta a wix.exe, instalándolo si la dep está
+// declarada y falta. "" si no está declarada o si la instalación falló.
+export fn string ensureWix(string serezJsonPath) {
+    // ¿ya instalado?
+    let wix = findWix("");
+    if (wix != "") {
+        out "[deps] WiX ya disponible.";
+        return wix;
+    }
+
+    // no instalado → ¿declarado como dependencia?
+    if (!declaresDep(serezJsonPath, "wix")) {
+        out "[deps] WiX no está instalado y NO está declarado en dependencies.";
+        out "[deps] Añade \"wix\" a dependencies en serez.json para auto-instalarlo.";
+        return "";
+    }
+
+    // declarado y falta → auto-instalar vía dotnet tool
+    let dotnet = findDotnet();
+    if (dotnet == "") {
+        out "[deps] ERROR: WiX declarado pero no se encontró dotnet para instalarlo.";
+        return "";
+    }
+    let declared = depVersion(serezJsonPath, "wix");
+    let varg = wixVersionArg(declared);
+    out "[deps] WiX declarado y ausente → instalando wix {varg} con dotnet ...";
+    let res = null;
+    unsafe {
+        res = OS.exec(dotnet, ["tool", "install", "--global", "wix", "--version", varg]);
+    }
+    let code = res.code;
+    out "[deps] dotnet tool install wix → code {code}";
+    if (code != 0) {
+        let err = res.stderr;
+        out err;
+    }
+    // re-detectar tras la instalación
+    return findWix("");
+}

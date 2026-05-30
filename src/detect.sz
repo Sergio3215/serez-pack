@@ -1,0 +1,41 @@
+// detect.sz — localiza el toolchain WiX. El usuario lo instala; aquí solo se
+// detecta y, si falta, pack.sz da un mensaje claro.
+//
+//   WiX v4/v5 : 'wix.exe'  (dotnet tool global → %USERPROFILE%\.dotnet\tools\)
+//   WiX v3    : 'candle.exe' + 'light.exe'  (Program Files (x86)\WiX Toolset v3.x\bin\)
+
+import "strutil"
+
+// Ruta a wix.exe (v4/v5) o "" si no se encuentra. `override` = ruta forzada por flag.
+export fn string findWix(string override) {
+    if (override != "") {
+        if (File.exists(override)) { return override; }
+    }
+    let home = Env.get("USERPROFILE");
+    if (home != null) {
+        let c = joinPath(home, ".dotnet\\tools\\wix.exe");
+        if (File.exists(c)) { return c; }
+    }
+    return "";
+}
+
+// Ruta al ejecutable de dotnet (para instalar WiX como dotnet tool), o "".
+export fn string findDotnet() {
+    let c1 = "C:\\Program Files\\dotnet\\dotnet.exe";
+    if (File.exists(c1)) { return c1; }
+    let c2 = "C:\\Program Files (x86)\\dotnet\\dotnet.exe";
+    if (File.exists(c2)) { return c2; }
+    return "";
+}
+
+// Ruta a candle.exe (WiX v3) o "".
+export fn string findCandle(string override) {
+    if (override != "") {
+        if (File.exists(override)) { return override; }
+    }
+    let c1 = "C:\\Program Files (x86)\\WiX Toolset v3.14\\bin\\candle.exe";
+    if (File.exists(c1)) { return c1; }
+    let c2 = "C:\\Program Files (x86)\\WiX Toolset v3.11\\bin\\candle.exe";
+    if (File.exists(c2)) { return c2; }
+    return "";
+}

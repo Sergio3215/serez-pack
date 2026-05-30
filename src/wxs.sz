@@ -1,0 +1,27 @@
+// wxs.sz — genera el .wxs del MSI a partir de una plantilla con placeholders.
+// Se usa plantilla + replace para evitar escapar comillas XML dentro de .sz.
+
+import "strutil"
+
+// Sustituye los placeholders y escribe el .wxs. Devuelve la ruta del .wxs.
+export fn string generateProductWxs(string templatePath, string outWxs, string name, string version, string stageDir, string manufacturer) {
+    let tpl = File.read(templatePath);
+    let s1 = replaceAll(tpl, "@NAME@", name);
+    let s2 = replaceAll(s1, "@VERSION@", version);
+    let s3 = replaceAll(s2, "@MANUFACTURER@", manufacturer);
+    let s4 = replaceAll(s3, "@STAGEDIR@", stageDir);
+    File.write(outWxs, s4);
+    return outWxs;
+}
+
+// Genera el .wxs del bundle Burn (.exe) que envuelve el .msi indicado.
+export fn string generateBundleWxs(string templatePath, string outWxs, string name, string version, string manufacturer, string msiPath, string upgradeGuid) {
+    let tpl = File.read(templatePath);
+    let s1 = replaceAll(tpl, "@NAME@", name);
+    let s2 = replaceAll(s1, "@VERSION@", version);
+    let s3 = replaceAll(s2, "@MANUFACTURER@", manufacturer);
+    let s4 = replaceAll(s3, "@MSIPATH@", msiPath);
+    let s5 = replaceAll(s4, "@UPGRADEGUID@", upgradeGuid);
+    File.write(outWxs, s5);
+    return outWxs;
+}

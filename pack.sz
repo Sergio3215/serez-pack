@@ -1,0 +1,113 @@
+// pack.sz — empaquetador de apps Serez. El runtime sz.exe viaja DENTRO del paquete.
+//
+// Uso (opciones como clave=valor SIN guiones; sz.exe rechaza los '--'):
+//   sz.exe pack.sz entry=<app.sz> name=<AppName> [out=<dir>]
+//                  [serez-ui=<dir>] [serez-json=<file>] [sz=<sz.exe>]
+//                  [format=folder|msi|exe]
+//
+// sz= por defecto = el propio sz.exe en ejecución (Env.args()[0]).
+// Hito 1: genera la carpeta autocontenida (format=folder).
+// Hito 2: format=msi|exe vía WiX (requiere WiX instalado).
+
+import "src/strutil"
+import "src/args"
+import "src/fsutil"
+import "src/detect"
+import "src/deps"
+import "src/staging"
+import "src/wxs"
+import "src/msi"
+
+// Devuelve un código de salida (0 = ok, 1 = error). int en vez de void para que
+// los `return` no choquen con el type checker (return; se infiere como null).
+fn int main() {
+    let argv = Env.args();
+
+    let entry  = getOpt(argv, "entry", "");
+    let name   = getOpt(argv, "name", "");
+    let outDir = getOpt(argv, "out", "dist");
+    let szExe  = getOpt(argv, "sz", argv[0]);
+    let uiDir  = getOpt(argv, "serez-ui", "");
+    let pjson  = getOpt(argv, "serez-json", "");
+    let format = getOpt(argv, "format", "folder");
+
+    if (entry == "") {
+        out "ERROR: falta entry=<ruta a la app .sz>";
+        return 1;
+    }
+    if (name == "") {
+        out "ERROR: falta name=<NombreApp>";
+        return 1;
+    }
+    if (!File.exists(entry)) {
+        out "ERROR: no existe el entry indicado:";
+        out entry;
+        return 1;
+    }
+    if (!File.exists(szExe)) {
+        out "ERROR: no se encuentra el runtime sz.exe:";
+        out szExe;
+        return 1;
+    }
+
+    out "── serez-pack ───────────────────────────────";
+    out "  entry    = {entry}";
+    out "  name     = {name}";
+    out "  out      = {outDir}";
+    out "  runtime  = {szExe}";
+    out "  serez-ui = {uiDir}";
+    out "  format   = {format}";
+    out "─────────────────────────────────────────────";
+
+    // 1. Staging: carpeta autocontenida (el corazón; base de los 3 formatos)
+    let stage = buildStaging(outDir, name, szExe, entry, pjson, uiDir);
+    out "[ok] carpeta autocontenida:";
+    out stage;
+
+    if (format == "folder") {
+        out "[done] formato 'folder'. Ejecutable con: sz.exe app.sz desde esa carpeta.";
+        return 0;
+    }
+
+    // 2. (Hito 2) WiX → .msi y bundle .exe
+    // WiX es dependencia gestionada: declarada en el serez.json de serez-pack y
+    // auto-instalada si falta. El serez.json propio está junto a pack.sz (argv[1]).
+    let scriptPath = argv[1];
+    let selfDir = dirName(scriptPath);
+    let selfJson = joinPath(selfDir, "serez.json");
+
+    let wix = ensureWix(selfJson);
+    if (wix == "") {
+        out "ERROR: sin WiX no se puede generar el formato solicitado:";
+        out format;
+        return 1;
+    }
+    out "[wix] disponible:";
+    out wix;
+
+    let version = getOpt(argv, "version", "1.0.0.0");
+    let vendor  = getOpt(argv, "vendor", "SerezDev");
+    let tplDir  = joinPath(selfDir, "templates");
+
+    // El .msi es la base de ambos formatos WiX: siempre se construye.
+    let prodTpl = joinPath(tplDir, "product.wxs.template");
+    let wxsOut  = joinPath(outDir, name + ".wxs");
+    let msiOut  = joinPath(outDir, name + ".msi");
+    generateProductWxs(prodTpl, wxsOut, name, version, stage, vendor);
+    let mcode = buildMsi(wix, wxsOut, msiOut);
+    if (mcode != 0) { return mcode; }
+
+    if (format == "msi") { return 0; }
+
+    // format=exe → bundle Burn que instala el .msi
+    ensureBalExtension(wix);
+    let bndTpl = joinPath(tplDir, "bundle.wxs.template");
+    let bWxs   = joinPath(outDir, name + "_bundle.wxs");
+    let exeOut = joinPath(outDir, name + "Setup.exe");
+    let ug     = getOpt(argv, "upgrade-code", "5E5E20AC-0001-4000-8000-000000000001");
+    generateBundleWxs(bndTpl, bWxs, name, version, vendor, msiOut, ug);
+    let bcode = buildBundle(wix, bWxs, exeOut);
+    return bcode;
+}
+
+let _exit = main();

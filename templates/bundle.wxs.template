@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Plantilla de bundle Burn (.exe) para serez-pack. Envuelve e instala el .msi. -->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:bal="http://wixtoolset.org/schemas/v4/wxs/bal">
+  <Bundle Name="@NAME@" Manufacturer="@MANUFACTURER@" Version="@VERSION@" UpgradeCode="@UPGRADEGUID@">
+    <BootstrapperApplication>
+      <bal:WixStandardBootstrapperApplication Theme="none" />
+    </BootstrapperApplication>
+    <Chain>
+      <MsiPackage SourceFile="@MSIPATH@" Vital="yes" />
+    </Chain>
+  </Bundle>
+</Wix>

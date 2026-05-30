@@ -1,0 +1,6 @@
+# Salida de empaquetado
+dist/
+
+# Temporales
+*.tmp
+_spike*.sz

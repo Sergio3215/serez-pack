@@ -1,0 +1,9 @@
+// ui_smoke.sz — prueba que una app empaquetada puede importar serez-ui.
+// No interactivo: usa una función pura (h) y termina.
+
+import "serez-ui"
+
+let node = h("div", [], ["hola"]);
+let t = node.getTag();
+out "VNode tag = {t}";
+out "import de serez-ui resuelto desde el paquete: OK";

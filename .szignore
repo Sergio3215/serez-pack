@@ -1,0 +1,6 @@
+# Archivos/carpetas que NO se publican con `sz publish`.
+# (sintaxis tipo .gitignore: nombres exactos, carpetas con / y globs con *)
+# .git y este .szignore se excluyen siempre, automáticamente.
+
+dist/
+*.tmp

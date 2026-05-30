@@ -1,0 +1,76 @@
+// msi.sz — construye el .msi invocando `wix build` (WiX v4+) por OS.exec.
+
+import "strutil"
+
+// Devuelve el código de salida de `wix build` (0 = ok).
+export fn int buildMsi(string wixExe, string wxsPath, string outMsi) {
+    out "[msi] wix build → ";
+    out outMsi;
+    let res = null;
+    unsafe {
+        res = OS.exec(wixExe, ["build", wxsPath, "-arch", "x64", "-o", outMsi]);
+    }
+    let code = res.code;
+    if (code != 0) {
+        out "[msi] FALLÓ (code):";
+        out code;
+        let so = res.stdout;
+        let se = res.stderr;
+        out so;
+        out se;
+        return code;
+    }
+    out "[msi] OK";
+    return 0;
+}
+
+// Versión del toolset wix (p.ej. "5.0.2"), sin el sufijo "+hash".
+// export obligatorio: la llama ensureBalExtension desde el scope de pack.sz.
+export fn string wixVersion(string wixExe) {
+    let res = null;
+    unsafe {
+        res = OS.exec(wixExe, ["--version"]);
+    }
+    let v = res.stdout.trim();
+    let plus = strIndexOf(v, "+");
+    if (plus >= 0) { return v.substring(0, plus); }
+    return v;
+}
+
+// Garantiza la extensión Burn (BootstrapperApplications) para construir bundles.
+// CLAVE: la extensión debe ir FIJADA a la misma versión del toolset, o wix falla
+// con WIX6101 (al bajar la extensión 'latest' incompatible).
+export fn int ensureBalExtension(string wixExe) {
+    let ver = wixVersion(wixExe);
+    let extref = "WixToolset.BootstrapperApplications.wixext/" + ver;
+    out "[exe] asegurando extensión Burn {extref} ...";
+    let res = null;
+    unsafe {
+        res = OS.exec(wixExe, ["extension", "add", "-g", extref]);
+    }
+    let code = res.code;
+    out "[exe] wix extension add → code {code}";
+    return code;
+}
+
+// Construye el bundle .exe (Burn) que instala el .msi. Devuelve el código de salida.
+export fn int buildBundle(string wixExe, string wxsPath, string outExe) {
+    out "[exe] wix build (bundle) → ";
+    out outExe;
+    let res = null;
+    unsafe {
+        res = OS.exec(wixExe, ["build", wxsPath, "-ext", "WixToolset.BootstrapperApplications.wixext", "-o", outExe]);
+    }
+    let code = res.code;
+    if (code != 0) {
+        out "[exe] FALLÓ (code):";
+        out code;
+        let so = res.stdout;
+        let se = res.stderr;
+        out so;
+        out se;
+        return code;
+    }
+    out "[exe] OK";
+    return 0;
+}

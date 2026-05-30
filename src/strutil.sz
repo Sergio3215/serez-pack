@@ -1,0 +1,90 @@
+// strutil.sz — helpers de string y rutas (Windows). Sin dependencias.
+//
+// Disciplina serez-code: helpers definidos ANTES de quien los usa (no hay hoist
+// al importar); NUNCA meter string-literals dentro de una interpolación {expr}.
+
+export fn bool strStartsWith(string s, string prefix) {
+    let m = prefix.length();
+    if (m > s.length()) { return false; }
+    return s.substring(0, m) == prefix;
+}
+
+export fn bool strEndsWith(string s, string suffix) {
+    let n = s.length();
+    let m = suffix.length();
+    if (m > n) { return false; }
+    return s.substring(n - m, n) == suffix;
+}
+
+// Índice del último separador de ruta ('\' o '/'), o -1 si no hay.
+export fn int lastSep(string p) {
+    let i = p.length() - 1;
+    while (i >= 0) {
+        let c = p.charAt(i);
+        if (c == "\\" || c == "/") { return i; }
+        i = i - 1;
+    }
+    return -1;
+}
+
+// Último componente de una ruta ("a\b\c.sz" -> "c.sz").
+export fn string baseName(string p) {
+    let idx = lastSep(p);
+    if (idx < 0) { return p; }
+    return p.substring(idx + 1, p.length());
+}
+
+// Directorio padre de una ruta ("a\b\c.sz" -> "a\b"), "" si no hay separador.
+export fn string dirName(string p) {
+    let idx = lastSep(p);
+    if (idx < 0) { return ""; }
+    return p.substring(0, idx);
+}
+
+// Quita la extensión final ("counter.szx" -> "counter"); respeta separadores.
+export fn string stripExt(string name) {
+    let i = name.length() - 1;
+    while (i >= 0) {
+        let c = name.charAt(i);
+        if (c == ".") { return name.substring(0, i); }
+        if (c == "\\" || c == "/") { return name; }
+        i = i - 1;
+    }
+    return name;
+}
+
+// Índice de la primera aparición de `needle` en `hay`, o -1.
+export fn int strIndexOf(string hay, string needle) {
+    let n = hay.length();
+    let m = needle.length();
+    if (m == 0) { return -1; }
+    let i = 0;
+    while (i + m <= n) {
+        if (hay.substring(i, i + m) == needle) { return i; }
+        i = i + 1;
+    }
+    return -1;
+}
+
+// Reemplaza TODAS las apariciones (el .replace nativo solo cambia la primera).
+export fn string replaceAll(string s, string find, string repl) {
+    let m = find.length();
+    if (m == 0) { return s; }
+    let acc = "";
+    let rest = s;
+    let idx = strIndexOf(rest, find);
+    while (idx >= 0) {
+        acc = acc + rest.substring(0, idx) + repl;
+        rest = rest.substring(idx + m, rest.length());
+        idx = strIndexOf(rest, find);
+    }
+    return acc + rest;
+}
+
+// Une dos segmentos con '\' evitando duplicar separador.
+export fn string joinPath(string a, string b) {
+    if (a == "") { return b; }
+    let last = a.charAt(a.length() - 1);
+    if (last == "\\" || last == "/") { return a + b; }
+    return a + "\\" + b;
+}

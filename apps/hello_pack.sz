@@ -1,0 +1,10 @@
+// hello_pack.sz — demo mínimo para serez-pack (sin serez-ui).
+// Sirve para probar el empaquetado end-to-end sin dependencias.
+
+out "¡Hola desde una app Serez empaquetada!";
+out "Este paquete lleva el runtime sz.exe dentro: no requiere Serez-Code instalado.";
+
+let a = 21;
+let b = 2;
+let r = a * b;
+out "21 * 2 = {r}";

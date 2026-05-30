@@ -1,0 +1,58 @@
+// staging.sz — arma la carpeta autocontenida <out>\<AppName>\.
+//
+// Layout resultante (raíz = dir de sz.exe = exe_dir en runtime, por eso el
+// `import "serez-ui"` resuelve sin depender del CWD):
+//
+//   <AppName>\
+//     sz.exe          runtime (copiado)
+//     app.sz          entry de la app (nombre fijo para el launcher)
+//     serez.json      permisos de la app (si se indicó)
+//     serez-ui\       index.sz + src\  (si la app la usa)
+
+import "strutil"
+import "fsutil"
+
+// Copia la librería serez-ui mínima (index.sz + src\) junto a sz.exe.
+// Evita .git, apps\ y tools\ del repo.
+export fn void copySerezUi(string srcUi, string dstUi) {
+    File.mkdir(dstUi);
+    let idxSrc = joinPath(srcUi, "index.sz");
+    let idxDst = joinPath(dstUi, "index.sz");
+    copyFile(idxSrc, idxDst);
+    let srcSrc = joinPath(srcUi, "src");
+    let dstSrc = joinPath(dstUi, "src");
+    copyTree(srcSrc, dstSrc);
+}
+
+// Construye el staging y devuelve su ruta.
+export fn string buildStaging(string outDir, string appName, string szExe, string entrySz, string serezJson, string serezUiDir) {
+    File.mkdir(outDir);
+    let stage = joinPath(outDir, appName);
+    File.mkdir(stage);
+
+    // runtime
+    let dstExe = joinPath(stage, "sz.exe");
+    copyFile(szExe, dstExe);
+
+    // entry → app.sz
+    let dstApp = joinPath(stage, "app.sz");
+    copyFile(entrySz, dstApp);
+
+    // permisos de la app
+    if (serezJson != "") {
+        if (File.exists(serezJson)) {
+            let dstJson = joinPath(stage, "serez.json");
+            copyFile(serezJson, dstJson);
+        }
+    }
+
+    // librería serez-ui
+    if (serezUiDir != "") {
+        if (File.exists(serezUiDir)) {
+            let dstUi = joinPath(stage, "serez-ui");
+            copySerezUi(serezUiDir, dstUi);
+        }
+    }
+
+    return stage;
+}

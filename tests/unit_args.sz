@@ -1,0 +1,45 @@
+// unit_args.sz — Tests para serez-pack/src/args.sz
+
+import "src/args"
+
+// ── getOpt ────────────────────────────────────────────────────────────────────
+test("getOpt: extrae valor presente", () => {
+    let argv = ["prog.sz", "entry=app.sz", "name=MiApp"]
+    assert(getOpt(argv, "entry", "") == "app.sz", "entry=app.sz")
+})
+test("getOpt: retorna default si ausente", () => {
+    let argv = ["prog.sz", "name=MiApp"]
+    assert(getOpt(argv, "entry", "index.sz") == "index.sz", "default cuando ausente")
+})
+test("getOpt: extrae nombre con espacios en el valor", () => {
+    let argv = ["prog.sz", "name=Mi Aplicacion"]
+    assert(getOpt(argv, "name", "") == "Mi Aplicacion", "valor con espacio")
+})
+test("getOpt: format por defecto", () => {
+    let argv = ["prog.sz", "entry=a.sz"]
+    assert(getOpt(argv, "format", "folder") == "folder", "default format")
+})
+test("getOpt: argv vacío retorna default", () => {
+    let argv = []
+    assert(getOpt(argv, "entry", "none") == "none", "argv vacío")
+})
+test("getOpt: última ocurrencia (primer match gana)", () => {
+    let argv = ["prog.sz", "name=PrimerValor", "name=Segundo"]
+    assert(getOpt(argv, "name", "") == "PrimerValor", "primer match gana")
+})
+
+// ── hasOpt ────────────────────────────────────────────────────────────────────
+test("hasOpt: clave presente", () => {
+    let argv = ["prog.sz", "format=msi"]
+    assert(hasOpt(argv, "format"), "format presente")
+})
+test("hasOpt: clave ausente", () => {
+    let argv = ["prog.sz", "entry=app.sz"]
+    assert(!hasOpt(argv, "vendor"), "vendor ausente")
+})
+test("hasOpt: argv vacío", () => {
+    let argv = []
+    assert(!hasOpt(argv, "entry"), "argv vacío → false")
+})
+
+summary()

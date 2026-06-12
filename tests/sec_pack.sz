@@ -1,0 +1,48 @@
+// sec_pack.sz — Tests de seguridad/resiliencia para serez-pack/src/strutil + args
+
+import "src/strutil"
+import "src/args"
+
+// ── Traversal: joinPath no sanea ".." ─────────────────────────────────────────
+test("joinPath no filtra .. (responsabilidad del caller)", () => {
+    let ruta = joinPath("safe_dir", "..\\secret")
+    // No debe crashear; sí puede producir la ruta tal cual
+    assert(ruta.length() > 0, "retorna cadena no vacía")
+})
+
+// ── replaceAll: cadena con caracteres especiales ───────────────────────────────
+test("replaceAll con chars especiales como find", () => {
+    let r = replaceAll("a.b.c", ".", "_")
+    assert(r == "a_b_c", "reemplaza puntos literales")
+})
+
+// ── strStartsWith con string vacío ────────────────────────────────────────────
+test("strStartsWith con string vacío como s", () => {
+    assert(!strStartsWith("", "hola"), "string vacío no tiene prefix no-vacío")
+})
+
+// ── getOpt: token sin '=' no confunde ─────────────────────────────────────────
+test("getOpt: token sin '=' no se confunde con clave", () => {
+    let argv = ["prog.sz", "--help", "entry=ok.sz"]
+    assert(getOpt(argv, "entry", "") == "ok.sz", "ignora tokens sin '=' correcto")
+})
+
+// ── getOpt: clave que contiene '=' en el valor ────────────────────────────────
+test("getOpt: valor con '=' (URL param)", () => {
+    let argv = ["prog.sz", "url=http://host?k=v"]
+    assert(getOpt(argv, "url", "") == "http://host?k=v", "valor con = en él")
+})
+
+// ── strIndexOf cadena larga (no cuelga) ───────────────────────────────────────
+test("strIndexOf en cadena larga", () => {
+    let big = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab"
+    assert(strIndexOf(big, "b") == 63, "encuentra al final de cadena larga")
+})
+
+// ── baseName con sólo separadores ─────────────────────────────────────────────
+test("baseName con trailing backslash → vacío", () => {
+    let r = baseName("a\\b\\")
+    assert(r == "", "trailing backslash → componente vacío")
+})
+
+summary()

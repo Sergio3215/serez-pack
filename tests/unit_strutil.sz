@@ -1,0 +1,85 @@
+// unit_strutil.sz — Tests para serez-pack/src/strutil.sz
+
+import "src/strutil"
+
+// ── strStartsWith ─────────────────────────────────────────────────────────────
+test("strStartsWith: match", () => {
+    assert(strStartsWith("hello", "hel"), "esperaba true")
+})
+test("strStartsWith: no match", () => {
+    assert(!strStartsWith("hello", "world"), "esperaba false")
+})
+test("strStartsWith: prefix más largo", () => {
+    assert(!strStartsWith("hi", "hiii"), "prefix más largo → false")
+})
+test("strStartsWith: string completo", () => {
+    assert(strStartsWith("abc", "abc"), "string completo es prefix de sí mismo")
+})
+
+// ── strEndsWith ───────────────────────────────────────────────────────────────
+test("strEndsWith: match .sz", () => {
+    assert(strEndsWith("app.sz", ".sz"), "terminación .sz")
+})
+test("strEndsWith: no match", () => {
+    assert(!strEndsWith("app.sz", ".exe"), "esperaba false")
+})
+test("strEndsWith: suffix más largo", () => {
+    assert(!strEndsWith("hi", "long_suffix"), "suffix más largo → false")
+})
+
+// ── baseName / dirName ────────────────────────────────────────────────────────
+test("baseName: ruta con backslash", () => {
+    assert(baseName("a\\b\\c.sz") == "c.sz", "extrae último componente")
+})
+test("baseName: sin separador", () => {
+    assert(baseName("solo.sz") == "solo.sz", "retorna la misma cadena")
+})
+test("dirName: ruta con backslash", () => {
+    assert(dirName("a\\b\\c.sz") == "a\\b", "directorio padre")
+})
+test("dirName: sin separador → vacío", () => {
+    assert(dirName("solo.sz") == "", "sin separador retorna vacío")
+})
+
+// ── stripExt ──────────────────────────────────────────────────────────────────
+test("stripExt: quita .szx", () => {
+    assert(stripExt("counter.szx") == "counter", "extensión .szx eliminada")
+})
+test("stripExt: sin extensión", () => {
+    assert(stripExt("Makefile") == "Makefile", "sin punto → sin cambio")
+})
+
+// ── joinPath ──────────────────────────────────────────────────────────────────
+test("joinPath: une dos segmentos", () => {
+    assert(joinPath("a\\b", "c.sz") == "a\\b\\c.sz", "une con backslash")
+})
+test("joinPath: a vacío retorna b", () => {
+    assert(joinPath("", "file.sz") == "file.sz", "a vacío")
+})
+test("joinPath: no duplica separador", () => {
+    assert(joinPath("dir\\", "file.sz") == "dir\\file.sz", "no duplica backslash")
+})
+
+// ── replaceAll ────────────────────────────────────────────────────────────────
+test("replaceAll: todas las ocurrencias", () => {
+    assert(replaceAll("a-b-c", "-", "/") == "a/b/c", "reemplaza todas")
+})
+test("replaceAll: find vacío → sin cambio", () => {
+    assert(replaceAll("hola", "", "X") == "hola", "find vacío → retorna original")
+})
+test("replaceAll: sin ocurrencias", () => {
+    assert(replaceAll("abc", "z", "X") == "abc", "sin match → sin cambio")
+})
+
+// ── strIndexOf ────────────────────────────────────────────────────────────────
+test("strIndexOf: primera ocurrencia", () => {
+    assert(strIndexOf("hello world", "world") == 6, "índice correcto")
+})
+test("strIndexOf: no encontrado", () => {
+    assert(strIndexOf("hello", "xyz") == -1, "retorna -1")
+})
+test("strIndexOf: needle vacío → -1", () => {
+    assert(strIndexOf("hello", "") == -1, "needle vacío → -1")
+})
+
+summary()

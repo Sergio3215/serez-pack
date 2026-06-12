@@ -6,3 +6,5 @@ dist/
 *.tmp
 apps/
 publish.ps1
+tests/
+/tests/

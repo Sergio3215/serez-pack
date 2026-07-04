@@ -68,6 +68,8 @@ $sz = "..\Serez-code\target\release\sz.exe"
 | `serez-json=` | (empty)                     | `serez.json` with the app's permissions |
 | `format=`     | `folder`                    | `folder` \| `msi` \| `exe` |
 
+> The app's `serez.json` should include a `"version"` field — the runtime needs it to load permissions, so `serez-pack` warns at pack time if it is missing (otherwise the installed app would run without any permissions).
+
 ## Prerequisites
 
 - **Folder (`folder`)**: none.

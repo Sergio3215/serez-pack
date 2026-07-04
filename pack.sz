@@ -50,6 +50,19 @@ fn int main() {
         return 1;
     }
 
+    // Validar el serez.json ANTES de empaquetar: el runtime exige el campo
+    // "version"; sin él carga cero permisos en silencio... y la app instalada
+    // fallaría en casa del usuario. Mejor avisar aquí.
+    if (pjson != "") {
+        if (File.exists(pjson)) {
+            let pj = File.read(pjson);
+            if (!pj.includes("\"version\"")) {
+                out "WARNING: {pjson} no tiene campo \"version\" — el runtime lo";
+                out "         exige y la app correria SIN permisos. Agregalo.";
+            }
+        }
+    }
+
     out "── serez-pack ───────────────────────────────";
     out "  entry    = {entry}";
     out "  name     = {name}";

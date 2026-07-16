@@ -1,107 +1,65 @@
 # serez-pack
 
-**v1.0.0** · [Serez-Code](../Serez-code) application packager to a **self-contained** bundle: the `sz.exe` runtime travels **inside** the package, so the end user **does not need to install Serez-Code**. Written in pure `.sz` (dogfooding); **does not touch** the serez-code core.
+[Serez-Code](https://serezcode.org) application packager: ship your app as a **self-contained**
+bundle where the `sz.exe` runtime travels **inside** the package — the end user does not need
+Serez-Code installed. Written in pure `.sz` (dogfooding); it never touches the core.
 
-## Installation
+## Install & use
 
 ```powershell
 sz install serez-pack
 ```
 
-It is installed in `./packages/serez-pack/`. Run it with:
-
 ```powershell
+# Self-contained folder (no extra toolchain needed)
+sz packages\serez-pack\pack.sz entry=my_app.sz name=MyApp format=folder
+
+# .msi installer (auto-installs WiX if missing)
 sz packages\serez-pack\pack.sz entry=my_app.sz name=MyApp format=msi
+
+# .exe installer (Burn bundle wrapping the .msi)
+sz packages\serez-pack\pack.sz entry=my_app.sz name=MyApp format=exe
+
+# An app that uses serez-ui
+sz packages\serez-pack\pack.sz entry=my_app.sz name=MyApp serez-ui=..\serez-ui serez-json=serez.json format=msi
 ```
 
-Or use it directly from the repo (cloned): `sz pack.sz entry=… name=…`.
+> ⚠️ Options are `key=value` **without dashes** — `sz.exe` rejects unknown `--flags`.
 
 ## Formats
 
-| `format=` | Output | Toolchain | Status |
-|-----------|--------|-----------|--------|
-| `folder`  | `<out>\<AppName>\` executable with `sz.exe app.sz` | — (none) | ✅ |
-| `msi`     | `<out>\<AppName>.msi` (installs in `Program Files\<AppName>`) | WiX | ✅ |
-| `exe`     | `<out>\<AppName>Setup.exe` (Burn bundle that installs the .msi) | WiX | ✅ |
+| `format=` | Output | Toolchain |
+|-----------|--------|-----------|
+| `folder`  | `<out>\<AppName>\` — folder that runs with the embedded `sz.exe` | none |
+| `msi`     | `<out>\<AppName>.msi` — installs into `Program Files\<AppName>` | WiX 5 (auto-installed) |
+| `exe`     | `<out>\<AppName>Setup.exe` — Burn bundle that installs the .msi | WiX 5 (auto-installed) |
+
+## Options
+
+| Option        | Default                | Description |
+|---------------|------------------------|-------------|
+| `entry=`      | (required)             | Path to the app's `.sz` entry file |
+| `name=`       | (required)             | Name of the app / package |
+| `out=`        | `dist`                 | Output directory |
+| `sz=`         | the executing `sz.exe` | Runtime to embed |
+| `serez-ui=`   | (empty)                | Path to serez-ui (if the app imports it) |
+| `serez-json=` | (empty)                | `serez.json` with the app's permissions |
+| `format=`     | `folder`               | `folder` \| `msi` \| `exe` |
 
 ## How it works
 
-```
-app.sz + serez-ui + sz.exe  ──pack.sz──▶  <AppName>/      (self-contained folder)
-                                              sz.exe       embedded runtime
-                                              app.sz       your app (entry)
-                                              serez.json   permissions (optional)
-                                              serez-ui/    index.sz + src/ (if used)
-```
+The output folder contains `sz.exe` (embedded runtime), your entry `.sz`, the app's `serez.json`
+(permissions) and any bundled libraries (e.g. `serez-ui/`). The runtime resolves imports from the
+app's own directory and the `sz.exe` directory, so the package runs anywhere — the same layout
+backs the folder, the `.msi` and the `.exe` bundle.
 
-The runtime resolves `import "serez-ui"` by looking into, among others, the **app's own directory and the `sz.exe` directory** — therefore, with `serez-ui/` next to `sz.exe`, the import resolves without relying on the working directory. This applies equally to the folder, the `.msi` (Program Files) and the `.exe` bundle.
+For `.msi`/`.exe`, WiX 5 is a **managed dependency**: if missing, serez-pack auto-installs it
+with `dotnet tool install --global wix` (needs the .NET SDK). Include a `"version"` field in your
+app's `serez.json` — the runtime needs it to load permissions (serez-pack warns if it's missing).
 
-## Usage
+## Documentation
 
-> ⚠️ Options are passed as `key=value` **without dashes**: `sz.exe` rejects any unknown `--flag` and would abort before executing the script.
-
-```powershell
-$sz = "..\Serez-code\target\release\sz.exe"
-
-# Self-contained folder (no extra toolchain)
-& $sz pack.sz entry=apps\hello_pack.sz name=HelloPack out=dist format=folder
-
-# .msi installer (auto-installs WiX if missing)
-& $sz pack.sz entry=apps\hello_pack.sz name=HelloPack out=dist format=msi
-
-# .exe installer (Burn bundle wrapping the .msi)
-& $sz pack.sz entry=apps\hello_pack.sz name=HelloPack out=dist format=exe
-
-# With an app using serez-ui
-& $sz pack.sz entry=my_app.sz name=MyApp serez-ui=..\serez-ui serez-json=..\serez-ui\serez.json format=msi
-```
-
-### Options
-
-| Option        | Default                     | Description |
-|---------------|-----------------------------|-------------|
-| `entry=`      | (required)                  | Path to the app's `.sz` (entry) |
-| `name=`       | (required)                  | Name of the app / package |
-| `out=`        | `dist`                      | Output directory |
-| `sz=`         | the executing `sz.exe`      | Runtime to embed |
-| `serez-ui=`   | (empty)                     | Path to serez-ui repo (if imported by the app) |
-| `serez-json=` | (empty)                     | `serez.json` with the app's permissions |
-| `format=`     | `folder`                    | `folder` \| `msi` \| `exe` |
-
-> The app's `serez.json` should include a `"version"` field — the runtime needs it to load permissions, so `serez-pack` warns at pack time if it is missing (otherwise the installed app would run without any permissions).
-
-## Prerequisites
-
-- **Folder (`folder`)**: none.
-- **`.msi` / `.exe`**: **WiX** as a **managed dependency**. Declared in `serez.json`:
-  ```json
-  "dependencies": { "wix": "5" }
-  ```
-  If not installed, serez-pack **auto-installs** it with `dotnet tool install --global wix` (requires the **.NET SDK**, which you already have). It is intentionally pinned to **WiX 5**: v6+ requires accepting the OSMF EULA. For `.exe` it also auto-adds the Burn extension pinned to the same version. If `wix` is **not** declared and is missing, `msi`/`exe` will warn with a clear message.
-
-> The `.msi` installs into `Program Files\<AppName>` (requires elevation during install) and creates a shortcut that launches `sz.exe app.sz`. The `.exe` is a Burn bundle that installs that `.msi`.
-
-> Note: 7-Zip SFX was discarded — generating its autorun requires concatenating binaries, which is unfeasible in pure `.sz` without touching the core. WiX assembles the installer from files on disk, without binary manipulation.
-
-## Structure
-
-```
-serez-pack/
-  pack.sz              orchestrator (options parsing → staging → format)
-  src/
-    strutil.sz         string & path helpers (incl. replaceAll, strIndexOf)
-    args.sz            key=value options reading
-    fsutil.sz          copyFile (binary-safe) + copyTree
-    staging.sz         builds the self-contained folder
-    detect.sz          locates WiX / dotnet
-    deps.sz            WiX as dependency: declaresDep + auto-install
-    wxs.sz             generates .wxs (MSI Product + Bundle) from templates
-    msi.sz             wix build for .msi and .exe bundle (+ Burn extension)
-  templates/
-    product.wxs.template   MSI template (placeholders @...@)
-    bundle.wxs.template    Burn bundle template
-  apps/
-    hello_pack.sz      minimal demo (no serez-ui)
-    ui_smoke.sz        demo importing serez-ui
-  serez.json           dependencies: { wix: 5 } · permissions: OS, File, Env
-```
+- **[serez-pack reference](https://serezcode.org/docs/serez-pack)** — options, formats and
+  troubleshooting, on the Serez-Code site.
+- **[Package your app](https://serezcode.org/guides/packaging)** — step-by-step tutorial from a
+  working app to a distributable installer.

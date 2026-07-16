@@ -1,6 +1,6 @@
 {
   "name": "serez-pack",
-  "version": "1.2.6",
+  "version": "1.2.7",
   "description": "Empaquetador de apps Serez a .exe (SFX) y .msi (WiX) — el runtime sz.exe viaja dentro del paquete",
   "author": "SerezDev",
   "dependencies": {
